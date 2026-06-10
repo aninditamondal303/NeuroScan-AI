@@ -1,0 +1,9 @@
+fastapi>=0.100.0
+uvicorn>=0.22.0
+pydantic>=2.0.0
+numpy>=1.23.0
+pillow>=9.5.0
+scikit-learn>=1.2.0
+python-multipart>=0.0.6
+sqlite3-to-mysql>=1.0.0
+# tensorflow>=2.12.0  # Comment out on low-memory servers (such as free tiers) to avoid build freezes

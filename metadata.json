@@ -1,0 +1,6 @@
+{
+  "name": "NeuroScan AI",
+  "description": "An end-to-end brain tumor detection and classification system featuring convolutional neural network representations, simulated Grad-CAM heatmap visualizations, and detailed AI radiographic analysis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

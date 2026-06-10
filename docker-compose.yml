@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  # Python FastAPI deep-learning classifier service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: neuroscan_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./model:/app/model
+    environment:
+      - ENVIRONMENT=development
+      - PORT=8000
+    restart: unless-stopped
+
+  # React Vite visual portfolio frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: neuroscan_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - NODE_ENV=development
+    depends_on:
+      - backend
+    restart: unless-stopped
