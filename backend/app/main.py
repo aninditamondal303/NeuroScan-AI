@@ -1,207 +1,300 @@
-"""
-🧠 NeuroScan AI - FastAPI Production Backend
-Author: Senior AI Engineer / DevOps Master
-Features: TensorFlow loaded keras models, Grad-CAM overlays, SQLite histories, error loggers
+"""NeuroScan AI backend.
+
+Run from the repository root:
+    uvicorn backend.app.main:app --port 8000
 """
 
-import os
-import io
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
 import time
-import sqlite3
-import numpy as np
-from PIL import Image
-from typing import Dict, List, Any
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
+from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Optional
+
+from fastapi import FastAPI, File, Form, Query, Request, UploadFile
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.responses import FileResponse, JSONResponse
+from starlette.concurrency import run_in_threadpool
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-# FastAPI Instance with Metadata
-app = FastAPI(
-    title="NeuroScan AI - Brain Tumor Diagnostic Engine",
-    description="Python FastAPI backend serving deep learning CNN classifiers with Grad-CAM localization.",
-    version="1.0"
-)
+from .config import APP_VERSION, Settings
+from .errors import ApiError
+from .history import HistoryStore
+from .inference import InferenceService, RunnerFactory, default_runner_factory
+from .schemas import AnalysisResult, HealthResponse, HistoryEntry, Limits, ModelInfoResponse
+from .validation import SUPPORTED_FORMATS, decode_upload
 
-# Cross-Origin Resource Sharing (CORS) Configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger("neuroscan.api")
 
-# Directories Initialization
-UPLOADS_DIR = "uploads"
-MODEL_DIR = "model"
-DB_PATH = "history.db"
+MULTIPART_OVERHEAD = 64 * 1024
 
-os.makedirs(UPLOADS_DIR, exist_ok=True)
 
-# Global variables for AI models
-model = None
-class_names = ["Glioma", "Meningioma", "No Tumor", "Pituitary"]
+class BodySizeLimit:
+    """Reject request bodies above a limit before they are fully read.
 
-def init_sqlite_db():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS scan_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp TEXT,
-            filename TEXT,
-            prediction TEXT,
-            confidence REAL,
-            severity TEXT
+    Checks Content-Length when present and counts streamed bytes otherwise,
+    so a chunked upload cannot bypass the limit."""
+
+    def __init__(self, app, max_bytes: int):
+        self.app = app
+        self.max_bytes = max_bytes
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or scope.get("method") not in ("POST", "PUT", "PATCH"):
+            await self.app(scope, receive, send)
+            return
+        headers = dict(scope.get("headers") or [])
+        length = headers.get(b"content-length")
+        too_large = ApiError(
+            413,
+            "file_too_large",
+            f"The upload is larger than the {self.max_bytes // (1024 * 1024)} MB limit.",
+            "Export the slice at a smaller size.",
         )
-    """)
-    conn.commit()
-    conn.close()
+        if length is not None and length.isdigit() and int(length) > self.max_bytes + MULTIPART_OVERHEAD:
+            await JSONResponse(too_large.to_body(), status_code=413)(scope, receive, send)
+            return
 
-init_sqlite_db()
+        received = 0
+        exceeded = False
 
-# Lazy-load TensorFlow to avoid heavy imports during boot checks
-try:
-    import tensorflow as tf
-    model_path = os.path.join(MODEL_DIR, "best_model.keras")
-    if os.path.exists(model_path):
-        model = tf.keras.models.load_model(model_path)
-        print(f"📦 Successfully loaded fine-tuned neural net checkpoint: {model_path}")
-    else:
-        print(f"🚨 Checkpoint file '{model_path}' not found. Initializing sandbox inference engine.")
-except Exception as e:
-    print(f"⚠️ TensorFlow initialization stalled: {e}. Defaulting to medical simulation pipelines.")
+        async def limited_receive():
+            nonlocal received, exceeded
+            if exceeded:
+                return {"type": "http.request", "body": b"", "more_body": False}
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                if received > self.max_bytes + MULTIPART_OVERHEAD:
+                    # Stop reading; the truncated body fails to parse and the
+                    # response is replaced with a 413 below.
+                    exceeded = True
+                    return {"type": "http.request", "body": b"", "more_body": False}
+            return message
 
-# API endpoints
+        replaced = False
 
-@app.get("/health")
-def read_health():
-    return {
-        "status": "healthy",
-        "timestamp": time.time(),
-        "model_loaded": model is not None,
-        "engine": "TensorFlow 2.15.0" if model else "Sandbox Heuristics"
-    }
+        async def guarded_send(message):
+            nonlocal replaced
+            if exceeded:
+                if message["type"] == "http.response.start" and not replaced:
+                    replaced = True
+                    response = JSONResponse(too_large.to_body(), status_code=413)
+                    await send({"type": "http.response.start", "status": 413, "headers": response.raw_headers})
+                    await send({"type": "http.response.body", "body": response.body})
+                return
+            await send(message)
 
-@app.get("/model-info")
-def get_model_info():
-    return {
-        "architecture": "EfficientNetB0 Transfer Learned Spine Classifier",
-        "input_width": 224,
-        "input_height": 224,
-        "classes": class_names,
-        "total_parameters": 5288548,
-        "state": "deployed"
-    }
+        await self.app(scope, limited_receive, guarded_send)
 
-@app.post("/predict")
-async def predict_mri(file: UploadFile = File(...)):
-    # Simple image extension safety checking
-    if not file.filename.lower().endswith((".png", ".jpg", ".jpeg", ".tiff")):
-        raise HTTPException(status_code=400, detail="Invalid file type. Please present standard JPEG or PNG neuroimages.")
 
-    try:
-        content = await file.read()
-        image = Image.open(io.BytesIO(content)).convert("RGB")
-        
-        # Log to DB helper
-        timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        filename = file.filename
+def create_app(settings: Optional[Settings] = None, runner_factory: Optional[RunnerFactory] = None) -> FastAPI:
+    settings = settings or Settings()
+    service = InferenceService(settings.model_dir, runner_factory or default_runner_factory)
+    history: Optional[HistoryStore] = None
 
-        if model is not None:
-            # 1. Resize and normalize image for real TensorFlow evaluation
-            resized = image.resize((224, 224))
-            arr = np.array(resized) / 255.0
-            batch = np.expand_dims(arr, axis=0)
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        nonlocal history
+        await run_in_threadpool(service.load)
+        if settings.history_enabled:
+            history = HistoryStore(settings.history_db)
+        yield
+        if history is not None:
+            history.close()
 
-            # 2. Complete inference lookup
-            preds = model.predict(batch)[0]
-            pred_idx = np.argmax(preds)
-            prediction = class_names[pred_idx]
-            confidence = float(preds[pred_idx]) * 100
+    app = FastAPI(
+        title="NeuroScan AI API",
+        version=APP_VERSION,
+        description="Research prototype: 2D brain MRI slice classification with a locally trained model. Not for clinical use.",
+        lifespan=lifespan,
+    )
+    app.state.service = service
+    # Added first so it sits inside CORS: 413 responses still carry CORS headers.
+    app.add_middleware(BodySizeLimit, max_bytes=settings.max_upload_bytes)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(settings.cors_origins),
+        allow_methods=["GET", "POST", "DELETE"],
+        allow_headers=["*"],
+    )
 
-            # Map class probabilities
-            probabilities = {class_names[i]: float(preds[i]) * 100 for i in range(len(class_names))}
-        else:
-            # 3. Fallback Sandbox Simulator Heuristics if offline
-            # Use deterministic seed based on uploaded filename
-            np.random.seed(sum(ord(c) for c in file.filename) % 1000)
-            
-            fn_lower = file.filename.lower()
-            if "glioma" in fn_lower:
-                prediction = "Glioma"
-            elif "meningioma" in fn_lower:
-                prediction = "Meningioma"
-            elif "pituitary" in fn_lower:
-                prediction = "Pituitary"
-            elif "normal" in fn_lower or "healthy" in fn_lower or "no tumor" in fn_lower or "no_tumor" in fn_lower or "notumor" in fn_lower:
-                prediction = "No Tumor"
-            else:
-                prediction = np.random.choice(class_names, p=[0.3, 0.3, 0.3, 0.1])
-            
-            confidence = float(np.random.uniform(88.5, 99.4))
-            
-            probabilities = {}
-            remaining = 100.0 - confidence
-            for name in class_names:
-                if name == prediction:
-                    probabilities[name] = confidence
-                else:
-                    probabilities[name] = remaining / (len(class_names) - 1)
+    # ------------------------------------------------------------ error shape
+    @app.exception_handler(ApiError)
+    async def _api_error(_: Request, exc: ApiError):
+        return JSONResponse(exc.to_body(), status_code=exc.status_code)
 
-        # map prognosis status
-        severity_map = {
-            "Glioma": "High (Requires Urgent Neuro-oncology Review)",
-            "Meningioma": "Moderate (Recommend Surgical/Observation Consult)",
-            "Pituitary": "Moderate (Recommend Endocrinological Panel & Specialist Consultation)",
-            "No Tumor": "None (Healthy Tissue Observed)"
-        }
-        severity = severity_map.get(prediction, "None")
-
-        # Log into SQLite base
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO scan_logs (timestamp, filename, prediction, confidence, severity) VALUES (?, ?, ?, ?, ?)",
-            (timestamp, filename, prediction, confidence, severity)
+    @app.exception_handler(RequestValidationError)
+    async def _validation_error(_: Request, exc: RequestValidationError):
+        missing_file = any(e.get("loc", [None])[-1] == "file" for e in exc.errors())
+        err = ApiError(
+            400,
+            "invalid_request",
+            "No image file was included in the request." if missing_file else "The request was not in the expected format.",
+            "Send the image as multipart form data in a field named 'file'." if missing_file else None,
         )
-        conn.commit()
-        conn.close()
+        return JSONResponse(err.to_body(), status_code=400)
 
-        # Simulate coordinates for visual Grad-CAM focus overlay
-        # Pituitary sits in the sellar (middle base), meningioma dural sinus side, glioma left frontal parietal
-        focus_coordinates = {
-            "Glioma": {"x": 38, "y": 42, "radius": 22},
-            "Meningioma": {"x": 65, "y": 30, "radius": 18},
-            "Pituitary": {"x": 50, "y": 70, "radius": 14},
-            "No Tumor": {"x": 50, "y": 50, "radius": 10}
-        }
-        coord = focus_coordinates.get(prediction, {"x": 50, "y": 50, "radius": 12})
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_error(_: Request, exc: StarletteHTTPException):
+        code = {404: "not_found", 405: "method_not_allowed"}.get(exc.status_code, "http_error")
+        message = {404: "Not found.", 405: "This method is not allowed here."}.get(exc.status_code, "The request failed.")
+        return JSONResponse({"error": {"code": code, "message": message}}, status_code=exc.status_code)
 
-        return {
-            "prediction": prediction,
-            "confidence": round(confidence, 2),
-            "probabilities": {k: round(v, 2) for k, v in probabilities.items()},
-            "severity": severity,
-            "focusArea": coord,
-            "mriPlane": "axial",
-            "explanation": f"Model detected classic signs of {prediction} inside MRI scans. Cross examination recommended."
-        }
+    @app.exception_handler(Exception)
+    async def _unhandled(_: Request, exc: Exception):
+        logger.exception("Unhandled error")
+        return JSONResponse({"error": {"code": "internal_error", "message": "Something went wrong on the server."}}, status_code=500)
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Diagnostic service lookup error: {str(e)}")
+    # ----------------------------------------------------------------- routes
+    def limits() -> Limits:
+        return Limits(
+            max_upload_bytes=settings.max_upload_bytes,
+            max_pixels=settings.max_pixels,
+            max_side=settings.max_side,
+            min_side=settings.min_side,
+            formats=sorted(SUPPORTED_FORMATS),
+        )
 
-@app.get("/history")
-def fetch_history() -> List[Dict[str, Any]]:
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM scan_logs ORDER BY id DESC LIMIT 50")
-    rows = cursor.fetchall()
-    conn.close()
-    
-    return [dict(r) for r in rows]
+    @app.get("/api/health", response_model=HealthResponse)
+    def health():
+        meta = service.meta
+        return HealthResponse(
+            status="ok",
+            app_version=APP_VERSION,
+            model_ready=service.readiness.ready,
+            model_version=meta.model_version if meta and service.readiness.ready else None,
+            loaded_at=service.readiness.loaded_at,
+        )
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    @app.get("/api/model-info", response_model=ModelInfoResponse)
+    def model_info():
+        r = service.readiness
+        return ModelInfoResponse(
+            ready=r.ready,
+            checks=r.checks,
+            loaded_at=r.loaded_at,
+            metadata=service.meta.model_dump() if service.meta and r.ready else None,
+            limits=limits(),
+            history_enabled=settings.history_enabled,
+            app_version=APP_VERSION,
+        )
+
+    @app.post("/api/model/reload", response_model=ModelInfoResponse)
+    async def reload_model():
+        await run_in_threadpool(service.load)
+        return model_info()
+
+    @app.get("/api/evaluation")
+    def evaluation():
+        path = settings.model_dir / "evaluation.json"
+        if not path.is_file():
+            raise ApiError(
+                404,
+                "evaluation_unavailable",
+                "No evaluation report has been generated yet.",
+                "Run ml/train.py (or ml/evaluate.py) to create model/evaluation.json.",
+            )
+        try:
+            report = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            raise ApiError(
+                500, "evaluation_invalid", "The evaluation report could not be read.", "Re-run ml/evaluate.py to regenerate it."
+            ) from None
+        if service.meta and report.get("model_version") != service.meta.model_version:
+            report["version_mismatch"] = True
+        return report
+
+    @app.post("/api/analyze", response_model=AnalysisResult)
+    async def analyze(
+        file: UploadFile = File(...),
+        request_id: Optional[str] = Form(default=None, max_length=64),
+        explain: bool = Query(default=True),
+    ):
+        if not service.readiness.ready:
+            raise ApiError(
+                503,
+                "model_unavailable",
+                "Analysis is unavailable because the trained model is not ready.",
+                service.readiness.first_failure(),
+            )
+        started = time.perf_counter()
+        data = await file.read(settings.max_upload_bytes + 1)
+        await file.close()
+        decoded = await run_in_threadpool(
+            decode_upload,
+            data,
+            max_bytes=settings.max_upload_bytes,
+            max_pixels=settings.max_pixels,
+            max_side=settings.max_side,
+            min_side=settings.min_side,
+        )
+        decoded_at = time.perf_counter()
+        try:
+            result: AnalysisResult = await asyncio.wait_for(
+                run_in_threadpool(service.analyze, decoded, explain=explain, client_request_id=request_id),
+                timeout=settings.inference_timeout_s,
+            )
+        except asyncio.TimeoutError:
+            raise ApiError(
+                504,
+                "inference_timeout",
+                "The analysis took too long and was stopped.",
+                "Try again. The first analysis after starting can be slower.",
+            ) from None
+        result.timing.decode_ms = round((decoded_at - started) * 1000, 1)
+        result.timing.total_ms = round((time.perf_counter() - started) * 1000, 1)
+        if history is not None:
+            await run_in_threadpool(history.add, result)
+        logger.info("analysis %s status=%s total_ms=%.0f", result.analysis_id, result.status, result.timing.total_ms)
+        return result
+
+    def require_history() -> HistoryStore:
+        if history is None:
+            raise ApiError(404, "history_disabled", "History is turned off on this server.")
+        return history
+
+    @app.get("/api/history", response_model=list[HistoryEntry])
+    def list_history():
+        return require_history().list()
+
+    @app.get("/api/history/{analysis_id}", response_model=HistoryEntry)
+    def get_history(analysis_id: str):
+        entry = require_history().get(analysis_id)
+        if entry is None:
+            raise ApiError(404, "analysis_not_found", "No saved analysis has this ID.")
+        return entry
+
+    @app.delete("/api/history/{analysis_id}")
+    def delete_history(analysis_id: str):
+        if not require_history().delete(analysis_id):
+            raise ApiError(404, "analysis_not_found", "No saved analysis has this ID.")
+        return {"deleted": 1}
+
+    @app.delete("/api/history")
+    def clear_history():
+        return {"deleted": require_history().clear()}
+
+    # Serve the built frontend when it exists, so one process can run the demo.
+    dist: Path = settings.frontend_dist
+    if (dist / "index.html").is_file():
+        index = dist / "index.html"
+
+        @app.get("/{path:path}", include_in_schema=False)
+        def spa(path: str):
+            if path.startswith("api/"):
+                raise ApiError(404, "not_found", "Not found.")
+            candidate = (dist / path).resolve()
+            if path and candidate.is_file() and dist.resolve() in candidate.parents:
+                return FileResponse(candidate)
+            return FileResponse(index)
+
+    return app
+
+
+app = create_app()

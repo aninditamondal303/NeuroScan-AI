@@ -1,0 +1,884 @@
+{
+  "schema_version": 1,
+  "model_version": "2026.10.26-efficientnet_b0-8c7d9591",
+  "created_at": "2026-10-26T14:50:50+00:00",
+  "quick_run": false,
+  "dataset": {
+    "name": "Brain Tumor MRI Dataset (Masoud Nickparvar, Kaggle)",
+    "source": "https://www.kaggle.com/datasets/masoudnickparvar/brain-tumor-mri-dataset",
+    "classes": [
+      "glioma",
+      "meningioma",
+      "notumor",
+      "pituitary"
+    ],
+    "folder_counts": {
+      "Training": {
+        "glioma": 1400,
+        "meningioma": 1400,
+        "notumor": 1400,
+        "pituitary": 1400
+      },
+      "Testing": {
+        "glioma": 400,
+        "meningioma": 400,
+        "notumor": 400,
+        "pituitary": 400
+      }
+    },
+    "split_counts": {
+      "train": {
+        "glioma": 1195,
+        "meningioma": 1108,
+        "notumor": 625,
+        "pituitary": 1197
+      },
+      "validation": {
+        "glioma": 200,
+        "meningioma": 185,
+        "notumor": 104,
+        "pituitary": 199
+      },
+      "test": {
+        "glioma": 400,
+        "meningioma": 400,
+        "notumor": 400,
+        "pituitary": 400
+      }
+    },
+    "split_method": "Testing folder = held-out test set. Validation = 15% of the remaining Training images, stratified by class and grouped by near-duplicate cluster (StratifiedGroupKFold)."
+  },
+  "leakage": {
+    "method": "SHA-256 of preprocessed pixels (exact) and 256-bit dHash Hamming distance (near-duplicate)",
+    "near_duplicate_max_distance": 12,
+    "training_images_scanned": 5600,
+    "training_removed_exact_match_in_test": 115,
+    "training_removed_near_match_in_test": 672,
+    "training_removed_label_conflicts": 0,
+    "training_pool_after_removal": 4813,
+    "near_duplicate_pairs_within_training": 676,
+    "groups_with_more_than_one_image": 206,
+    "largest_group_size": 11,
+    "test_images": 1600,
+    "test_exact_duplicate_images": 21,
+    "test_near_duplicate_pairs": 354,
+    "patient_ids_available": false,
+    "note": "The dataset has no patient identifiers, so slices from the same patient cannot be grouped reliably. Near-duplicate grouping reduces, but cannot eliminate, patient-level leakage."
+  },
+  "candidates": [
+    {
+      "name": "efficientnet_b0",
+      "architecture": "EfficientNetB0 (ImageNet-pretrained, fine-tuned)",
+      "parameters": 4054695,
+      "gradcam_layer": "top_activation",
+      "epochs_trained": 26,
+      "train_seconds": 4320.3,
+      "validation": {
+        "accuracy": 0.9694767441860465,
+        "macro_f1": 0.9708703586739715,
+        "nll": 0.09390102375906757
+      }
+    }
+  ],
+  "selected": "efficientnet_b0",
+  "selection_rule": "Highest validation macro-F1; ties broken by lower validation loss. The test set was not used for selection.",
+  "history": [
+    {
+      "epoch": 1,
+      "phase": "head",
+      "loss": 0.7872278094291687,
+      "accuracy": 0.6991515159606934,
+      "val_loss": 0.6606180667877197,
+      "val_accuracy": 0.7267441749572754
+    },
+    {
+      "epoch": 2,
+      "phase": "head",
+      "loss": 0.498237282037735,
+      "accuracy": 0.8155151605606079,
+      "val_loss": 0.6052306294441223,
+      "val_accuracy": 0.7543604373931885
+    },
+    {
+      "epoch": 3,
+      "phase": "head",
+      "loss": 0.44104570150375366,
+      "accuracy": 0.8341818451881409,
+      "val_loss": 0.5505765676498413,
+      "val_accuracy": 0.7950581312179565
+    },
+    {
+      "epoch": 4,
+      "phase": "head",
+      "loss": 0.4067922532558441,
+      "accuracy": 0.8526060581207275,
+      "val_loss": 0.5438633561134338,
+      "val_accuracy": 0.7979651093482971
+    },
+    {
+      "epoch": 5,
+      "phase": "head",
+      "loss": 0.39531955122947693,
+      "accuracy": 0.8511515259742737,
+      "val_loss": 0.5159606337547302,
+      "val_accuracy": 0.8095930218696594
+    },
+    {
+      "epoch": 6,
+      "phase": "head",
+      "loss": 0.3719734251499176,
+      "accuracy": 0.8606060743331909,
+      "val_loss": 0.49256154894828796,
+      "val_accuracy": 0.8255813717842102
+    },
+    {
+      "epoch": 7,
+      "phase": "head",
+      "loss": 0.355118989944458,
+      "accuracy": 0.8649696707725525,
+      "val_loss": 0.4833366870880127,
+      "val_accuracy": 0.8270348906517029
+    },
+    {
+      "epoch": 8,
+      "phase": "head",
+      "loss": 0.3523079752922058,
+      "accuracy": 0.868363618850708,
+      "val_loss": 0.45595696568489075,
+      "val_accuracy": 0.8357558250427246
+    },
+    {
+      "epoch": 9,
+      "phase": "fine-tune",
+      "loss": 0.29488396644592285,
+      "accuracy": 0.8855757713317871,
+      "val_loss": 0.3261309862136841,
+      "val_accuracy": 0.8808139562606812
+    },
+    {
+      "epoch": 10,
+      "phase": "fine-tune",
+      "loss": 0.1808103770017624,
+      "accuracy": 0.932606041431427,
+      "val_loss": 0.26994606852531433,
+      "val_accuracy": 0.9026162624359131
+    },
+    {
+      "epoch": 11,
+      "phase": "fine-tune",
+      "loss": 0.1336248368024826,
+      "accuracy": 0.9478787779808044,
+      "val_loss": 0.3010018467903137,
+      "val_accuracy": 0.8924418687820435
+    },
+    {
+      "epoch": 12,
+      "phase": "fine-tune",
+      "loss": 0.09459174424409866,
+      "accuracy": 0.9648484587669373,
+      "val_loss": 0.15384440124034882,
+      "val_accuracy": 0.9462209343910217
+    },
+    {
+      "epoch": 13,
+      "phase": "fine-tune",
+      "loss": 0.06840281933546066,
+      "accuracy": 0.9743030071258545,
+      "val_loss": 0.1577548086643219,
+      "val_accuracy": 0.9389534592628479
+    },
+    {
+      "epoch": 14,
+      "phase": "fine-tune",
+      "loss": 0.061420805752277374,
+      "accuracy": 0.9747878909111023,
+      "val_loss": 0.1767464280128479,
+      "val_accuracy": 0.9345930218696594
+    },
+    {
+      "epoch": 15,
+      "phase": "fine-tune",
+      "loss": 0.042183827608823776,
+      "accuracy": 0.9847272634506226,
+      "val_loss": 0.101520836353302,
+      "val_accuracy": 0.9607558250427246
+    },
+    {
+      "epoch": 16,
+      "phase": "fine-tune",
+      "loss": 0.033205535262823105,
+      "accuracy": 0.9881212115287781,
+      "val_loss": 0.11250174045562744,
+      "val_accuracy": 0.9607558250427246
+    },
+    {
+      "epoch": 17,
+      "phase": "fine-tune",
+      "loss": 0.031060077250003815,
+      "accuracy": 0.9895757436752319,
+      "val_loss": 0.11123375594615936,
+      "val_accuracy": 0.9622092843055725
+    },
+    {
+      "epoch": 18,
+      "phase": "fine-tune",
+      "loss": 0.02437657304108143,
+      "accuracy": 0.993212103843689,
+      "val_loss": 0.10082880407571793,
+      "val_accuracy": 0.9680232405662537
+    },
+    {
+      "epoch": 19,
+      "phase": "fine-tune",
+      "loss": 0.025534315034747124,
+      "accuracy": 0.9910302758216858,
+      "val_loss": 0.09616987407207489,
+      "val_accuracy": 0.9723837375640869
+    },
+    {
+      "epoch": 20,
+      "phase": "fine-tune",
+      "loss": 0.0236809179186821,
+      "accuracy": 0.9915151596069336,
+      "val_loss": 0.11148723214864731,
+      "val_accuracy": 0.9680232405662537
+    },
+    {
+      "epoch": 21,
+      "phase": "fine-tune",
+      "loss": 0.019986756145954132,
+      "accuracy": 0.9929696917533875,
+      "val_loss": 0.09390102326869965,
+      "val_accuracy": 0.9694767594337463
+    },
+    {
+      "epoch": 22,
+      "phase": "fine-tune",
+      "loss": 0.0211604256182909,
+      "accuracy": 0.9936969876289368,
+      "val_loss": 0.09674718976020813,
+      "val_accuracy": 0.9694767594337463
+    },
+    {
+      "epoch": 23,
+      "phase": "fine-tune",
+      "loss": 0.026453033089637756,
+      "accuracy": 0.9890909194946289,
+      "val_loss": 0.11090583354234695,
+      "val_accuracy": 0.9665697813034058
+    },
+    {
+      "epoch": 24,
+      "phase": "fine-tune",
+      "loss": 0.018328456208109856,
+      "accuracy": 0.9939393997192383,
+      "val_loss": 0.10086236894130707,
+      "val_accuracy": 0.9665697813034058
+    },
+    {
+      "epoch": 25,
+      "phase": "fine-tune",
+      "loss": 0.019792525097727776,
+      "accuracy": 0.9919999837875366,
+      "val_loss": 0.10912951827049255,
+      "val_accuracy": 0.9651162624359131
+    },
+    {
+      "epoch": 26,
+      "phase": "fine-tune",
+      "loss": 0.018081270158290863,
+      "accuracy": 0.9936969876289368,
+      "val_loss": 0.09928824007511139,
+      "val_accuracy": 0.9709302186965942
+    }
+  ],
+  "calibration": {
+    "method": "temperature scaling",
+    "temperature": 1.2390015541573987,
+    "validation_nll_before": 0.09390102375906757,
+    "validation_nll_after": 0.09123757514993035,
+    "validation_ece_before": 0.012707840659372322,
+    "validation_ece_after": 0.01119710409085833,
+    "test_ece_before": 0.055399394036457765,
+    "test_ece_after": 0.048307754424399676,
+    "test_reliability": [
+      {
+        "lower": 0.0,
+        "upper": 0.1,
+        "count": 0,
+        "confidence": null,
+        "accuracy": null
+      },
+      {
+        "lower": 0.1,
+        "upper": 0.2,
+        "count": 0,
+        "confidence": null,
+        "accuracy": null
+      },
+      {
+        "lower": 0.2,
+        "upper": 0.30000000000000004,
+        "count": 0,
+        "confidence": null,
+        "accuracy": null
+      },
+      {
+        "lower": 0.30000000000000004,
+        "upper": 0.4,
+        "count": 0,
+        "confidence": null,
+        "accuracy": null
+      },
+      {
+        "lower": 0.4,
+        "upper": 0.5,
+        "count": 13,
+        "confidence": 0.4690875143523957,
+        "accuracy": 0.6153846153846154
+      },
+      {
+        "lower": 0.5,
+        "upper": 0.6000000000000001,
+        "count": 41,
+        "confidence": 0.5500271314001686,
+        "accuracy": 0.2682926829268293
+      },
+      {
+        "lower": 0.6000000000000001,
+        "upper": 0.7000000000000001,
+        "count": 37,
+        "confidence": 0.6482937591813446,
+        "accuracy": 0.43243243243243246
+      },
+      {
+        "lower": 0.7000000000000001,
+        "upper": 0.8,
+        "count": 54,
+        "confidence": 0.7521143820305193,
+        "accuracy": 0.6296296296296297
+      },
+      {
+        "lower": 0.8,
+        "upper": 0.9,
+        "count": 72,
+        "confidence": 0.8560930242071344,
+        "accuracy": 0.7361111111111112
+      },
+      {
+        "lower": 0.9,
+        "upper": 1.0,
+        "count": 1383,
+        "confidence": 0.9932029565552728,
+        "accuracy": 0.9638467100506146
+      }
+    ]
+  },
+  "decision": {
+    "review_threshold": 0.44452883274794835,
+    "target_selective_accuracy": 0.97,
+    "target_met": true,
+    "coverage": 0.998546511627907,
+    "selective_accuracy": 0.9708879184861717,
+    "test_coverage": 0.99875,
+    "test_selective_accuracy": 0.9098873591989988,
+    "test_accuracy_of_flagged": 0.5,
+    "test_flagged_count": 2
+  },
+  "ood": {
+    "threshold": 69.98505381789572,
+    "validation_flag_rate": 0.00872093023255814,
+    "test_flag_rate": 0.018125,
+    "note": "Measured only on in-distribution images (how often normal test slices are flagged). Detection of non-MRI or other-scanner images has not been measured."
+  },
+  "test": {
+    "n": 1600,
+    "accuracy": 0.909375,
+    "macro_f1": 0.9081833140697912,
+    "balanced_accuracy": 0.9093749999999999,
+    "per_class": [
+      {
+        "class_id": "glioma",
+        "label": "Glioma",
+        "precision": 0.9703264094955489,
+        "recall": 0.8175,
+        "f1": 0.887381275440977,
+        "specificity": 0.9916666666666667,
+        "support": 400
+      },
+      {
+        "class_id": "meningioma",
+        "label": "Meningioma",
+        "precision": 0.926829268292683,
+        "recall": 0.855,
+        "f1": 0.8894668400520157,
+        "specificity": 0.9775,
+        "support": 400
+      },
+      {
+        "class_id": "notumor",
+        "label": "No tumour",
+        "precision": 0.8716216216216216,
+        "recall": 0.9675,
+        "f1": 0.9170616113744076,
+        "specificity": 0.9525,
+        "support": 400
+      },
+      {
+        "class_id": "pituitary",
+        "label": "Pituitary",
+        "precision": 0.8866666666666667,
+        "recall": 0.9975,
+        "f1": 0.9388235294117647,
+        "specificity": 0.9575,
+        "support": 400
+      }
+    ],
+    "confusion_matrix": {
+      "labels": [
+        "glioma",
+        "meningioma",
+        "notumor",
+        "pituitary"
+      ],
+      "matrix": [
+        [
+          327,
+          21,
+          35,
+          17
+        ],
+        [
+          4,
+          342,
+          22,
+          32
+        ],
+        [
+          6,
+          5,
+          387,
+          2
+        ],
+        [
+          0,
+          1,
+          0,
+          399
+        ]
+      ],
+      "rows": "true class",
+      "columns": "predicted class"
+    },
+    "tumour_vs_no_tumour": {
+      "sensitivity": 0.9525,
+      "specificity": 0.9675,
+      "tp": 1143,
+      "fn": 57,
+      "tn": 387,
+      "fp": 13,
+      "note": "Computed by treating glioma, meningioma and pituitary predictions as 'tumour' on the held-out test images."
+    }
+  },
+  "test_accepted_only": {
+    "n": 1569,
+    "accuracy": 0.9177820267686424,
+    "macro_f1": 0.9164993004954675,
+    "balanced_accuracy": 0.9168853139021338,
+    "per_class": [
+      {
+        "class_id": "glioma",
+        "label": "Glioma",
+        "precision": 0.9702380952380952,
+        "recall": 0.8337595907928389,
+        "f1": 0.8968363136176066,
+        "specificity": 0.9915110356536503,
+        "support": 391
+      },
+      {
+        "class_id": "meningioma",
+        "label": "Meningioma",
+        "precision": 0.9299719887955182,
+        "recall": 0.8691099476439791,
+        "f1": 0.89851150202977,
+        "specificity": 0.97893850042123,
+        "support": 382
+      },
+      {
+        "class_id": "notumor",
+        "label": "No tumour",
+        "precision": 0.8948598130841121,
+        "recall": 0.9671717171717171,
+        "f1": 0.9296116504854368,
+        "specificity": 0.9616368286445013,
+        "support": 396
+      },
+      {
+        "class_id": "pituitary",
+        "label": "Pituitary",
+        "precision": 0.890625,
+        "recall": 0.9975,
+        "f1": 0.9410377358490566,
+        "specificity": 0.9580838323353293,
+        "support": 400
+      }
+    ],
+    "confusion_matrix": {
+      "labels": [
+        "glioma",
+        "meningioma",
+        "notumor",
+        "pituitary"
+      ],
+      "matrix": [
+        [
+          326,
+          19,
+          30,
+          16
+        ],
+        [
+          4,
+          332,
+          15,
+          31
+        ],
+        [
+          6,
+          5,
+          383,
+          2
+        ],
+        [
+          0,
+          1,
+          0,
+          399
+        ]
+      ],
+      "rows": "true class",
+      "columns": "predicted class"
+    },
+    "tumour_vs_no_tumour": {
+      "sensitivity": 0.9616368286445013,
+      "specificity": 0.9671717171717171,
+      "tp": 1128,
+      "fn": 45,
+      "tn": 383,
+      "fp": 13,
+      "note": "Computed by treating glioma, meningioma and pituitary predictions as 'tumour' on the held-out test images."
+    }
+  },
+  "test_failures": [
+    {
+      "path": "Testing/glioma/Te-gl_341.jpg",
+      "true": "glioma",
+      "predicted": "notumor",
+      "score": 0.9999994519277235,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/glioma/Te-gl_78.jpg",
+      "true": "glioma",
+      "predicted": "notumor",
+      "score": 0.9999317294342478,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/glioma/Te-gl_74.jpg",
+      "true": "glioma",
+      "predicted": "notumor",
+      "score": 0.9998601398693956,
+      "would_be_flagged": true
+    },
+    {
+      "path": "Testing/meningioma/Te-me_31.jpg",
+      "true": "meningioma",
+      "predicted": "notumor",
+      "score": 0.9998292461745945,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/meningioma/Te-me_8.jpg",
+      "true": "meningioma",
+      "predicted": "notumor",
+      "score": 0.9996865987911159,
+      "would_be_flagged": true
+    },
+    {
+      "path": "Testing/meningioma/Te-me_278.jpg",
+      "true": "meningioma",
+      "predicted": "notumor",
+      "score": 0.9986535838154975,
+      "would_be_flagged": true
+    },
+    {
+      "path": "Testing/glioma/Te-gl_372.jpg",
+      "true": "glioma",
+      "predicted": "notumor",
+      "score": 0.9980073182158785,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/glioma/Te-gl_143.jpg",
+      "true": "glioma",
+      "predicted": "notumor",
+      "score": 0.9978219874128801,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/glioma/Te-gl_72.jpg",
+      "true": "glioma",
+      "predicted": "notumor",
+      "score": 0.9978219874128801,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/glioma/Te-gl_97.jpg",
+      "true": "glioma",
+      "predicted": "notumor",
+      "score": 0.9977377348526477,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/meningioma/Te-me_279.jpg",
+      "true": "meningioma",
+      "predicted": "notumor",
+      "score": 0.9967581027325398,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/glioma/Te-gl_213.jpg",
+      "true": "glioma",
+      "predicted": "meningioma",
+      "score": 0.9966713789049279,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/glioma/Te-gl_129.jpg",
+      "true": "glioma",
+      "predicted": "notumor",
+      "score": 0.9956534030189316,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/glioma/Te-gl_303.jpg",
+      "true": "glioma",
+      "predicted": "notumor",
+      "score": 0.9956534030189316,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/meningioma/Te-me_52.jpg",
+      "true": "meningioma",
+      "predicted": "notumor",
+      "score": 0.9955420842070043,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/glioma/Te-gl_277.jpg",
+      "true": "glioma",
+      "predicted": "notumor",
+      "score": 0.9949590980387228,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/glioma/Te-gl_39.jpg",
+      "true": "glioma",
+      "predicted": "notumor",
+      "score": 0.9945053699236965,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/meningioma/Te-me_202.jpg",
+      "true": "meningioma",
+      "predicted": "notumor",
+      "score": 0.9941011027587947,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/glioma/Te-gl_335.jpg",
+      "true": "glioma",
+      "predicted": "notumor",
+      "score": 0.9928573133752778,
+      "would_be_flagged": true
+    },
+    {
+      "path": "Testing/meningioma/Te-me_115.jpg",
+      "true": "meningioma",
+      "predicted": "pituitary",
+      "score": 0.9921138448307079,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/glioma/Te-gl_109.jpg",
+      "true": "glioma",
+      "predicted": "meningioma",
+      "score": 0.9891529410008462,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/meningioma/Te-aug-me_35.jpg",
+      "true": "meningioma",
+      "predicted": "pituitary",
+      "score": 0.9889803558278519,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/meningioma/Te-me_126.jpg",
+      "true": "meningioma",
+      "predicted": "notumor",
+      "score": 0.9886755123846677,
+      "would_be_flagged": true
+    },
+    {
+      "path": "Testing/meningioma/Te-me_290.jpg",
+      "true": "meningioma",
+      "predicted": "notumor",
+      "score": 0.9876016773121598,
+      "would_be_flagged": true
+    },
+    {
+      "path": "Testing/glioma/Te-gl_43.jpg",
+      "true": "glioma",
+      "predicted": "notumor",
+      "score": 0.9833096421322475,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/glioma/Te-gl_264.jpg",
+      "true": "glioma",
+      "predicted": "notumor",
+      "score": 0.9817019630305663,
+      "would_be_flagged": true
+    },
+    {
+      "path": "Testing/meningioma/Te-me_62.jpg",
+      "true": "meningioma",
+      "predicted": "notumor",
+      "score": 0.9813870905446024,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/glioma/Te-gl_187.jpg",
+      "true": "glioma",
+      "predicted": "notumor",
+      "score": 0.9810784370875436,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/glioma/Te-gl_218.jpg",
+      "true": "glioma",
+      "predicted": "notumor",
+      "score": 0.9803310694202698,
+      "would_be_flagged": true
+    },
+    {
+      "path": "Testing/glioma/Te-gl_391.jpg",
+      "true": "glioma",
+      "predicted": "notumor",
+      "score": 0.9789752264175108,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/meningioma/Te-me_117.jpg",
+      "true": "meningioma",
+      "predicted": "notumor",
+      "score": 0.9787507666647643,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/meningioma/Te-me_208.jpg",
+      "true": "meningioma",
+      "predicted": "notumor",
+      "score": 0.977212036193563,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/glioma/Te-gl_58.jpg",
+      "true": "glioma",
+      "predicted": "meningioma",
+      "score": 0.9758446989727433,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/meningioma/Te-me_251.jpg",
+      "true": "meningioma",
+      "predicted": "notumor",
+      "score": 0.9747632369412322,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/meningioma/Te-me_169.jpg",
+      "true": "meningioma",
+      "predicted": "pituitary",
+      "score": 0.9713599680225795,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/glioma/Te-gl_199.jpg",
+      "true": "glioma",
+      "predicted": "pituitary",
+      "score": 0.9695575486867241,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/notumor/Te-no_167.jpg",
+      "true": "notumor",
+      "predicted": "meningioma",
+      "score": 0.9675971497205713,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/meningioma/Te-me_228.jpg",
+      "true": "meningioma",
+      "predicted": "notumor",
+      "score": 0.9621111126604099,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/glioma/Te-gl_211.jpg",
+      "true": "glioma",
+      "predicted": "meningioma",
+      "score": 0.9553825137644436,
+      "would_be_flagged": false
+    },
+    {
+      "path": "Testing/meningioma/Te-me_92.jpg",
+      "true": "meningioma",
+      "predicted": "pituitary",
+      "score": 0.9522328890888612,
+      "would_be_flagged": false
+    }
+  ],
+  "environment": {
+    "python": "3.12.10",
+    "tensorflow": "2.21.0",
+    "numpy": "2.5.4",
+    "platform": "Windows-11-10.0.26200-SP0"
+  },
+  "config": {
+    "models": "efficientnet_b0",
+    "img_size": 224,
+    "batch_size": 32,
+    "baseline_epochs": 25,
+    "head_epochs": 8,
+    "finetune_epochs": 20,
+    "finetune_layers": 300,
+    "finetune_lr": 5e-05,
+    "patience": 5,
+    "val_fraction": 0.15,
+    "near_dup_distance": 12,
+    "target_accuracy": 0.97,
+    "ood_quantile": 0.99,
+    "seed": 42,
+    "deterministic": false,
+    "quick": false
+  },
+  "serving_consistency": {
+    "passed": true,
+    "checked": 24,
+    "max_abs_score_difference": 2.1595082592140713e-06,
+    "summary": "24 test files analysed through the API code path; max score difference 2.16e-06"
+  }
+}

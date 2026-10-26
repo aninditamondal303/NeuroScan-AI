@@ -1,0 +1,64 @@
+{
+  // Terminal > Run Task... (or Ctrl+Shift+B for the default "Start NeuroScan AI").
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Setup (first time)",
+      "type": "shell",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup.ps1",
+      "problemMatcher": []
+    },
+    {
+      "label": "Get dataset (from downloaded zip)",
+      "type": "shell",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/get-dataset.ps1 -Zip \"${input:datasetZip}\"",
+      "problemMatcher": []
+    },
+    {
+      "label": "Train model (quick pipeline check)",
+      "type": "shell",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/train.ps1 -Quick",
+      "problemMatcher": []
+    },
+    {
+      "label": "Train model (full)",
+      "type": "shell",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/train.ps1",
+      "problemMatcher": []
+    },
+    {
+      "label": "Train model (EfficientNet, all layers fine-tuned)",
+      "type": "shell",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/train.ps1 -FullFineTune",
+      "problemMatcher": []
+    },
+    {
+      "label": "Start NeuroScan AI",
+      "type": "shell",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start.ps1",
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "Start in dev mode (live reload)",
+      "type": "shell",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start.ps1 -Dev",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run all tests",
+      "type": "shell",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1",
+      "problemMatcher": [],
+      "group": "test"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "datasetZip",
+      "type": "promptString",
+      "description": "Full path to the downloaded Kaggle zip",
+      "default": "${userHome}\\Downloads\\archive.zip"
+    }
+  ]
+}

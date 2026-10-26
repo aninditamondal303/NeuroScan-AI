@@ -1,0 +1,11 @@
+[tool.pytest.ini_options]
+testpaths = ["backend/tests", "ml/tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 140
+extend-exclude = ["frontend", ".cache", "model"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "I"]
+ignore = ["E501", "B008", "B905"]  # B008: FastAPI's File()/Form() defaults are the documented idiom

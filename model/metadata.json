@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "model_version": "2026.10.26-efficientnet_b0-8c7d9591",
+  "architecture": "EfficientNetB0 (ImageNet-pretrained, fine-tuned)",
+  "framework": "tensorflow 2.21.0 / keras 3.15.1",
+  "created_at": "2026-10-26T14:50:50+00:00",
+  "weights_file": "best_model.keras",
+  "weights_sha256": "8c7d9591731792c1213ba2e4e234fde5a9703e2b12cd3559988fdfff6a052b94",
+  "logits_layer": "logits",
+  "input": {
+    "height": 224,
+    "width": 224,
+    "channels": 3,
+    "dtype": "float32",
+    "value_range": [
+      0,
+      255
+    ]
+  },
+  "preprocessing": {
+    "id": "grayscale-letterbox-v1"
+  },
+  "classes": [
+    {
+      "id": "glioma",
+      "label": "Glioma",
+      "index": 0,
+      "is_tumour": true
+    },
+    {
+      "id": "meningioma",
+      "label": "Meningioma",
+      "index": 1,
+      "is_tumour": true
+    },
+    {
+      "id": "notumor",
+      "label": "No tumour",
+      "index": 2,
+      "is_tumour": false
+    },
+    {
+      "id": "pituitary",
+      "label": "Pituitary",
+      "index": 3,
+      "is_tumour": true
+    }
+  ],
+  "calibration": {
+    "method": "temperature",
+    "temperature": 1.2390015541573987,
+    "fitted_on": "validation split"
+  },
+  "decision": {
+    "review_threshold": 0.44452883274794835,
+    "selected_on": "validation",
+    "target_selective_accuracy": 0.97,
+    "validation_coverage": 0.998546511627907,
+    "validation_selective_accuracy": 0.9708879184861717
+  },
+  "input_checks": {
+    "colourfulness_max": 11.03297105297598,
+    "derived_from": "max(10, 2 x 99.9th percentile of training-image colourfulness)"
+  },
+  "ood": {
+    "method": "mahalanobis-embedding",
+    "embedding_layer": "embedding",
+    "threshold": 69.98505381789572,
+    "stats_file": "ood_stats.npz",
+    "fitted_on": "training split (means, covariance); validation split (limit)",
+    "validation_flag_rate": 0.00872093023255814
+  },
+  "explainability": {
+    "method": "grad-cam",
+    "layer": "top_activation"
+  },
+  "dataset": {
+    "name": "Brain Tumor MRI Dataset (Masoud Nickparvar, Kaggle)",
+    "source": "https://www.kaggle.com/datasets/masoudnickparvar/brain-tumor-mri-dataset",
+    "notes": "2D JPEG slices; mixed planes and MRI sequences; no patient identifiers."
+  },
+  "quick_run": false
+}

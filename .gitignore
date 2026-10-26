@@ -1,5 +1,71 @@
-node_modules/
+# ---- secrets -------------------------------------------------------------
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---- Python --------------------------------------------------------------
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# ---- Node / frontend -----------------------------------------------------
+node_modules
+frontend/dist/
+frontend/node_modules/
 dist/
 build/
-.vscode/
+*.tsbuildinfo
+npm-debug.log*
+
+# ---- data, model artifacts and user data ---------------------------------
+# Datasets and MRI images never go into Git.
+data/
+datasets/
+dataset/
+brain-tumor-mri-dataset/
+Training/
+Testing/
+*.dcm
+*.nii
+*.nii.gz
+mri scans/
+uploads/
+.cache/
+
+# Model folder: weights and large statistics are distributed separately
+# (see model/README.md). metadata.json and evaluation.json are small and
+# may be committed so the repository documents the real results.
+model/*
+!model/README.md
+!model/metadata.json
+!model/evaluation.json
+# Backups of earlier trained models
+model_runs/
+
+# Local analysis history (results only, but still user data)
+backend/data/
+*.db
+*.sqlite
+
+# Generated reports, logs, screenshots from local runs
+reports/
+*.log
+e2e-shots/
+
+# ---- OS / editors --------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/*
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/settings.json
+.idea/
