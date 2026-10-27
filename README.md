@@ -4,12 +4,15 @@ A research and teaching prototype that classifies a **single 2D brain MRI slice*
 
 > **Not a medical device.** NeuroScan has not been clinically validated. A "no tumour" output does not rule out a tumour. Do not use it to diagnose, treat or rule out any condition.
 
+![Analysis workspace: a glioma test slice with its Grad-CAM heatmap and the score for every class](docs/screenshots/analysis.jpg)
+
 ---
 
 ## Contents
 
 - [Why this project](#why-this-project)
 - [What it does](#what-it-does)
+- [Screenshots](#screenshots)
 - [Architecture](#architecture)
 - [Results](#results)
 - [Quick start on Windows (scripts)](#quick-start-on-windows-scripts)
@@ -42,6 +45,16 @@ Many "AI tumour detector" demos show confident labels for any image, including p
 | Model performance | Test metrics, per-class table, confusion matrix, training curves, calibration, threshold behaviour, leakage checks. All read from `model/evaluation.json`; shows "Evaluation unavailable" otherwise. |
 
 Classes come from the trained model's metadata. If a model were trained without a class, the app would not offer it.
+
+## Screenshots
+
+All screenshots show real output of the trained model (`2026.10.26-efficientnet_b0-8c7d9591`) on images from the dataset's held-out `Testing` folder.
+
+| Printable report | Model performance |
+|---|---|
+| ![Report for a meningioma test slice: original slice, Grad-CAM overlay, class scores and limitations](docs/screenshots/report.jpg) | ![Model performance page: held-out test metrics, per-class table, confusion matrix and training curves](docs/screenshots/performance.jpg) |
+
+![Overview page: model status, measured test results and recent analyses](docs/screenshots/overview.jpg)
 
 ## Architecture
 
